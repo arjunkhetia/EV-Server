@@ -5,6 +5,12 @@ var ObjectId = require("mongodb").ObjectID;
 var async = require("async");
 var httpUtil = require("../utilities/http-messages");
 
+async function asyncForEach(array, callback) {
+  for (let index = 0; index < array.length; index++) {
+    await callback(array[index], index, array);
+  }
+}
+
 router.get("/", function (req, res, next) {
   db.get()
     .collection("station")
@@ -161,6 +167,30 @@ router.delete("/", function (req, res, next) {
     async.waterfall(
       [
         function (callback) {
+          db.get()
+            .collection("station")
+            .find(Id)
+            .toArray(async function (err, dbresult) {
+              if (err) callback(err);
+              await asyncForEach(
+                dbresult[0].connectors,
+                async (connector, index) => {
+                  db.get()
+                    .collection("connector")
+                    .deleteOne(
+                      { _id: ObjectId(connector.id) },
+                      function (err, result) {
+                        if (err) callback(err);
+                      }
+                    );
+                  if (dbresult[0].connectors.length - 1 === index) {
+                    callback(null, "Done");
+                  }
+                }
+              );
+            });
+        },
+        function (result, callback) {
           db.get()
             .collection("station")
             .deleteOne(Id, function (err, result) {
