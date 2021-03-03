@@ -6,6 +6,7 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
+    "axios": "^0.21.1",
     "body-parser": "^1.19.0",
     "compression": "^1.7.4",
     "cookie-parser": "^1.4.5",
@@ -16,14 +17,17 @@
     "express-status-monitor": "^1.3.3",
     "hbs": "^4.1.1",
     "helmet": "^4.4.1",
+    "https": "^1.0.0",
     "mongodb": "^3.6.4",
     "morgan": "^1.10.0",
     "multer": "^1.4.2",
+    "nanoid": "^3.1.20",
     "node-toobusy": "^0.6.3",
     "portfinder": "^1.0.28",
+    "qs": "^6.9.6",
     "read-excel-file": "^5.0.0",
     "request": "^2.88.2",
-    "rotating-file-stream": "^2.1.4",
+    "rotating-file-stream": "^2.1.5",
     "serve-favicon": "^2.5.0",
     "winston": "^3.3.3"
   },
