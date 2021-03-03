@@ -1,13 +1,11 @@
 var MongoClient = require('mongodb').MongoClient;
 
 // var URI = "mongodb://localhost:27017";
-var URI = "mongodb://arjunkhetia:ArjunKhetia2020@localhost:27017/ev?authSource=admin";
+var URI = "mongodb://arjunkhetia:ArjunKhetia2020@localhost:27017";
 
 var connection = null;
 
 var option = {
-    username: 'arjunkhetia',
-    password: 'ArjunKhetia2020',
   keepAlive: true,
   poolSize : 10,
   connectTimeoutMS: 5000,
