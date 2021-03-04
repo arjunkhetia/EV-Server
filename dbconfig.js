@@ -1,6 +1,7 @@
 var MongoClient = require('mongodb').MongoClient;
 
-var URI = "mongodb://localhost:27017";
+// var URI = "mongodb://localhost:27017";
+var URI = "mongodb+srv://arjunkhetia:Arjun@1990@emancitech.m10zy.mongodb.net/ev?retryWrites=true&w=majority";
 
 var connection = null;
 
