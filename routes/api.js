@@ -82,6 +82,9 @@ router.post("/user", function (req, res, next) {
     headers: {
       "Content-Type": "application/json",
     },
+    httpsAgent: new https.Agent({
+      rejectUnauthorized: false,
+    }),
     data: data,
   };
   axios(config)
@@ -106,6 +109,38 @@ router.post("/user", function (req, res, next) {
           if (err) callback(err);
           res.send(httpUtil.success(200, "", dbresult));
         });
+    })
+    .catch(function (error) {
+      console.log(error);
+    });
+});
+
+router.post("/startSession", function (req, res, next) {
+  const connectorId = req.body.connectorId ? req.body.connectorId : "";
+  const accessToken = req.body.accessToken ? req.body.accessToken : "";
+  var data = qs.stringify({
+    response_url:
+      "http://ec2-13-235-241-129.ap-south-1.compute.amazonaws.com:3000/session?id=" +
+      connectorId,
+    token: "UC1111",
+    location_id: "030415",
+    evse_id: "1",
+  });
+  var config = {
+    method: "POST",
+    url: "https://120.72.88.163:11443/v1/ocpi/cpo/2.2/commands/START_SESSION",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: "Bearer " + accessToken,
+    },
+    httpsAgent: new https.Agent({
+      rejectUnauthorized: false,
+    }),
+    data: data,
+  };
+  axios(config)
+    .then(function (response) {
+      res.send(httpUtil.success(200, "", response.data));
     })
     .catch(function (error) {
       console.log(error);
