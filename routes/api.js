@@ -123,7 +123,8 @@ router.post("/startSession", function (req, res, next) {
       "http://ec2-13-235-241-129.ap-south-1.compute.amazonaws.com:3000/session?id=" +
       connectorId,
     token: "UC1111",
-    location_id: "030415",
+    // location_id: "030415",
+    location_id: "EVB-P20281713",
     evse_id: "1",
   });
   var config = {
