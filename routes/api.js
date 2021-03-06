@@ -50,6 +50,8 @@ router.post("/user", function (req, res, next) {
   const name = req.body.name ? req.body.name : "";
   const email = req.body.email ? req.body.email : "";
   const mobile = req.body.mobile ? req.body.mobile : "";
+  const stationId = req.body.stationId ? req.body.stationId : "";
+  const connecctorId = req.body.connecctorId ? req.body.connecctorId : "";
   const cardName = req.body.cardName ? req.body.cardName : "";
   const cardNumber = req.body.cardNumber ? req.body.cardNumber : "";
   const cardCvv = req.body.cardCvv ? req.body.cardCvv : "";
@@ -94,6 +96,8 @@ router.post("/user", function (req, res, next) {
         email: email,
         mobile: mobile,
         refId: refId,
+        stationId: stationId,
+        connecctorId: connecctorId,
         authCode: response.data.transactionResponse.authCode,
         transId: response.data.transactionResponse.transId,
         accountNumber: response.data.transactionResponse.accountNumber,
