@@ -58,64 +58,70 @@ router.post("/user", function (req, res, next) {
   const cardExpMonth = req.body.cardExpMonth ? req.body.cardExpMonth : "";
   const cardExpYear = req.body.cardExpYear ? req.body.cardExpYear : "";
   const refId = nanoid.nanoid(15);
-  var data = JSON.stringify({
-    createTransactionRequest: {
-      merchantAuthentication: {
-        name: "37Xbna3d2Fza",
-        transactionKey: "88f9A2VUrKmJ3Z5d",
-      },
-      refId: refId,
-      transactionRequest: {
-        transactionType: "authCaptureTransaction",
-        amount: "10",
-        payment: {
-          creditCard: {
-            cardNumber: cardNumber,
-            expirationDate: cardExpYear + "-" + cardExpMonth,
-            cardCode: cardCvv,
+  db.get()
+    .collection("settings")
+    .find({})
+    .toArray(function (err, result) {
+      if (err) throw err;
+      var data = JSON.stringify({
+        createTransactionRequest: {
+          merchantAuthentication: {
+            name: "37Xbna3d2Fza",
+            transactionKey: "88f9A2VUrKmJ3Z5d",
+          },
+          refId: refId,
+          transactionRequest: {
+            transactionType: "authCaptureTransaction",
+            amount: result[0].authAmount,
+            payment: {
+              creditCard: {
+                cardNumber: cardNumber,
+                expirationDate: cardExpYear + "-" + cardExpMonth,
+                cardCode: cardCvv,
+              },
+            },
           },
         },
-      },
-    },
-  });
-  var config = {
-    method: "POST",
-    url: "https://apitest.authorize.net/xml/v1/request.api",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    httpsAgent: new https.Agent({
-      rejectUnauthorized: false,
-    }),
-    data: data,
-  };
-  axios(config)
-    .then(function (response) {
-      let user = {
-        name: name,
-        email: email,
-        mobile: mobile,
-        refId: refId,
-        stationId: stationId,
-        connecctorId: connecctorId,
-        authCode: response.data.transactionResponse.authCode,
-        transId: response.data.transactionResponse.transId,
-        accountNumber: response.data.transactionResponse.accountNumber,
-        accountType: response.data.transactionResponse.accountType,
-        networkTransId: response.data.transactionResponse.networkTransId,
-        createdAt: Date.now(),
-        updatedAt: null,
-        status: null,
+      });
+      var config = {
+        method: "POST",
+        url: "https://apitest.authorize.net/xml/v1/request.api",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        httpsAgent: new https.Agent({
+          rejectUnauthorized: false,
+        }),
+        data: data,
       };
-      db.get()
-        .collection("users")
-        .insertOne(user, function (err, dbresult) {
-          if (err) callback(err);
-          res.send(httpUtil.success(200, "", dbresult));
+      axios(config)
+        .then(function (response) {
+          let user = {
+            name: name,
+            email: email,
+            mobile: mobile,
+            refId: refId,
+            stationId: stationId,
+            connecctorId: connecctorId,
+            authCode: response.data.transactionResponse.authCode,
+            transId: response.data.transactionResponse.transId,
+            accountNumber: response.data.transactionResponse.accountNumber,
+            accountType: response.data.transactionResponse.accountType,
+            networkTransId: response.data.transactionResponse.networkTransId,
+            createdAt: Date.now(),
+            updatedAt: null,
+            status: "Authorize",
+          };
+          db.get()
+            .collection("users")
+            .insertOne(user, function (err, dbresult) {
+              if (err) callback(err);
+              res.send(httpUtil.success(200, "", dbresult));
+            });
+        })
+        .catch(function (error) {
+          console.log(error);
         });
-    })
-    .catch(function (error) {
-      console.log(error);
     });
 });
 
@@ -149,6 +155,28 @@ router.post("/startSession", function (req, res, next) {
     })
     .catch(function (error) {
       console.log(error);
+    });
+});
+
+router.post("/complete", function (req, res, next) {
+  const uid = req.body.uid ? ObjectId(req.body.uid) : "";
+  const time = req.body.time ? req.body.time : "";
+  const unit = req.body.unit ? req.body.unit : "";
+  const price = req.body.price ? req.body.price : "";
+  let data = {
+    $set: {
+      time: time,
+      unit: unit,
+      price: price,
+      updatedAt: Date.now(),
+      status: "Complete",
+    },
+  };
+  db.get()
+    .collection("users")
+    .updateOne({ _id: uid }, data, function (err, dbresult) {
+      if (err) callback(err);
+      res.send(httpUtil.success(200, "", dbresult));
     });
 });
 
