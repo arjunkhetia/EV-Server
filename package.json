@@ -23,6 +23,8 @@
     "multer": "^1.4.2",
     "nanoid": "^3.1.20",
     "node-toobusy": "^0.6.3",
+    "nodemailer": "^6.5.0",
+    "nodemailer-express-handlebars": "^4.0.0",
     "portfinder": "^1.0.28",
     "qs": "^6.9.6",
     "read-excel-file": "^5.0.0",

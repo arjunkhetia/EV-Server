@@ -8,6 +8,7 @@ var axios = require("axios");
 var qs = require("qs");
 var https = require("https");
 var nanoid = require("nanoid");
+var sendMail = require("../utilities/sendMail");
 
 router.get("/station", function (req, res, next) {
   const stationId = req.query.id ? req.query.id : "";
@@ -24,7 +25,7 @@ router.get("/client", function (req, res, next) {
   var data = qs.stringify({
     grant_type: "client_credentials",
     client_id: "UniversalCharging_API",
-    client_secret: "7TPPUNMFF6",
+    client_secret: "ABD4VDON3C",
   });
   var config = {
     method: "post",
@@ -58,6 +59,11 @@ router.post("/user", function (req, res, next) {
   const cardExpMonth = req.body.cardExpMonth ? req.body.cardExpMonth : "";
   const cardExpYear = req.body.cardExpYear ? req.body.cardExpYear : "";
   const refId = nanoid.nanoid(15);
+  let context = {
+    name: name,
+    stationId: stationId,
+    connecctorId: connecctorId,
+  };
   db.get()
     .collection("settings")
     .find({})
@@ -116,7 +122,9 @@ router.post("/user", function (req, res, next) {
             .collection("users")
             .insertOne(user, function (err, dbresult) {
               if (err) callback(err);
-              res.send(httpUtil.success(200, "", dbresult));
+              sendMail("Authorize", email, context).then((result) => {
+                res.send(httpUtil.success(200, "", dbresult));
+              });
             });
         })
         .catch(function (error) {
@@ -176,7 +184,23 @@ router.post("/complete", function (req, res, next) {
     .collection("users")
     .updateOne({ _id: uid }, data, function (err, dbresult) {
       if (err) callback(err);
-      res.send(httpUtil.success(200, "", dbresult));
+      db.get()
+        .collection("users")
+        .find({ _id: uid })
+        .toArray(function (err, result) {
+          if (err) throw err;
+          let context = {
+            name: result[0].name,
+            stationId: result[0].stationId,
+            connecctorId: result[0].connecctorId,
+            time: time,
+            unit: unit,
+            price: price,
+          };
+          sendMail("Complete", result[0].email, context).then((result) => {
+            res.send(httpUtil.success(200, "", result[0]));
+          });
+        });
     });
 });
 

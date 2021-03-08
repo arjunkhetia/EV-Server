@@ -73,7 +73,7 @@ fs.appendFile('./log/ServerData.log', '', function (err) {
 
 // view engine setup - Express-Handlebars
 app.engine('hbs', hbs({
-    extname: 'hbs',
+    extname: '.hbs',
     defaultLayout: 'layout',
     layoutsDir: __dirname + '/views/'
 }));
