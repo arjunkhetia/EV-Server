@@ -21,6 +21,7 @@ router.post("/", function (req, res, next) {
     $set: {
       authAmount: req.body.authAmount ? req.body.authAmount : "",
       adminEmail: req.body.adminEmail ? req.body.adminEmail : "",
+      price: req.body.price ? req.body.price : "",
       kwh: req.body.kwh ? req.body.kwh : "",
       min: req.body.min ? req.body.min : "",
       updatedAt: Date.now(),
