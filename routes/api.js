@@ -171,37 +171,75 @@ router.post("/complete", function (req, res, next) {
   const time = req.body.time ? req.body.time : "";
   const unit = req.body.unit ? req.body.unit : "";
   const price = req.body.price ? req.body.price : "";
-  let data = {
-    $set: {
-      time: time,
-      unit: unit,
-      price: price,
-      updatedAt: Date.now(),
-      status: "Complete",
-    },
-  };
-  db.get()
-    .collection("users")
-    .updateOne({ _id: uid }, data, function (err, dbresult) {
-      if (err) callback(err);
-      db.get()
-        .collection("users")
-        .find({ _id: uid })
-        .toArray(function (err, result) {
-          if (err) throw err;
-          let context = {
-            name: result[0].name,
-            stationId: result[0].stationId,
-            connecctorId: result[0].connecctorId,
+  const hr = parseInt(time.split(":")[0]);
+  const min = parseInt(time.split(":")[1]);
+  const sec = parseInt(time.split(":")[2]);
+  let chargedAmount;
+  async.waterfall(
+    [
+      function (callback) {
+        db.get()
+          .collection("settings")
+          .find({})
+          .toArray(function (err, result) {
+            if (err) throw err;
+            const settings = result[0];
+            if (settings.price === "pricetime") {
+              const price = parseInt(settings.min);
+              chargedAmount = (
+                hr * (60 * price) +
+                min * price +
+                sec * (price / 60)
+              ).toFixed(2);
+              callback(null, chargedAmount);
+            }
+          });
+      },
+      function (result, callback) {
+        let data = {
+          $set: {
             time: time,
             unit: unit,
-            price: price,
-          };
-          sendMail("Complete", result[0].email, context).then((result) => {
-            res.send(httpUtil.success(200, "", result[0]));
+            price: chargedAmount,
+            updatedAt: Date.now(),
+            status: "Complete",
+          },
+        };
+        db.get()
+          .collection("users")
+          .updateOne({ _id: uid }, data, function (err, dbresult) {
+            if (err) callback(err);
+            callback(null, dbresult);
           });
-        });
-    });
+      },
+      function (result, callback) {
+        db.get()
+          .collection("users")
+          .find({ _id: uid })
+          .toArray(function (err, result) {
+            if (err) throw err;
+            let context = {
+              name: result[0].name,
+              stationId: result[0].stationId,
+              connecctorId: result[0].connecctorId,
+              time: time,
+              unit: unit,
+              price: chargedAmount,
+            };
+            sendMail("Complete", result[0].email, context).then((result) => {
+              res.send(httpUtil.success(200, "", result[0]));
+            });
+          });
+      },
+    ],
+    function (err, result) {
+      if (err) {
+        res.status(500).send(httpUtil.error(500, "Charging Completion error."));
+      } else {
+        res.send(httpUtil.success(200, "Charging Completed.", result));
+      }
+    }
+  );
 });
 
 module.exports = router;
