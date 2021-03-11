@@ -77,7 +77,7 @@ router.post("/user", function (req, res, next) {
           },
           refId: refId,
           transactionRequest: {
-            transactionType: "authCaptureTransaction",
+            transactionType: "authOnlyTransaction",
             amount: result[0].authAmount,
             payment: {
               creditCard: {
@@ -141,8 +141,8 @@ router.post("/startSession", function (req, res, next) {
       "http://ec2-13-235-241-129.ap-south-1.compute.amazonaws.com:3000/session?id=" +
       connectorId,
     token: "UC1111",
-    // location_id: "030415",
-    location_id: "EVB-P20281713",
+    location_id: "030415",
+    // location_id: "EVB-P20281713",
     evse_id: "1",
   });
   var config = {
@@ -170,11 +170,12 @@ router.post("/complete", function (req, res, next) {
   const uid = req.body.uid ? ObjectId(req.body.uid) : "";
   const time = req.body.time ? req.body.time : "";
   const unit = req.body.unit ? req.body.unit : "";
-  const price = req.body.price ? req.body.price : "";
+  const meter = req.body.meter ? req.body.meter : "";
   const hr = parseInt(time.split(":")[0]);
   const min = parseInt(time.split(":")[1]);
   const sec = parseInt(time.split(":")[2]);
   let chargedAmount;
+  let context;
   async.waterfall(
     [
       function (callback) {
@@ -185,12 +186,16 @@ router.post("/complete", function (req, res, next) {
             if (err) throw err;
             const settings = result[0];
             if (settings.price === "pricetime") {
-              const price = parseInt(settings.min);
+              const price = parseFloat(settings.min);
               chargedAmount = (
                 hr * (60 * price) +
                 min * price +
                 sec * (price / 60)
               ).toFixed(2);
+              callback(null, chargedAmount);
+            } else if (settings.price === "pricekwh") {
+              const price = parseFloat(settings.kwh);
+              chargedAmount = (meter * price).toFixed(2);
               callback(null, chargedAmount);
             }
           });
@@ -218,17 +223,61 @@ router.post("/complete", function (req, res, next) {
           .find({ _id: uid })
           .toArray(function (err, result) {
             if (err) throw err;
-            let context = {
-              name: result[0].name,
-              stationId: result[0].stationId,
-              connecctorId: result[0].connecctorId,
-              time: time,
-              unit: unit,
-              price: chargedAmount,
-            };
-            sendMail("Complete", result[0].email, context).then((result) => {
-              res.send(httpUtil.success(200, "", result[0]));
+            if (result[0]) {
+              context = {
+                name: result[0].name,
+                stationId: result[0].stationId,
+                connecctorId: result[0].connecctorId,
+                time: time,
+                unit: unit,
+                price: chargedAmount,
+              };
+              callback(null, result[0]);
+            } else {
+              res
+                .status(500)
+                .send(httpUtil.error(500, "Charging Completion error."));
+            }
+          });
+      },
+      function (result, callback) {
+        var data = JSON.stringify({
+          createTransactionRequest: {
+            merchantAuthentication: {
+              name: "37Xbna3d2Fza",
+              transactionKey: "88f9A2VUrKmJ3Z5d",
+            },
+            refId: result.refId,
+            transactionRequest: {
+              transactionType: "priorAuthCaptureTransaction",
+              amount: result.price,
+              refTransId: result.transId,
+            },
+          },
+        });
+        var config = {
+          method: "POST",
+          url: "https://apitest.authorize.net/xml/v1/request.api",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          httpsAgent: new https.Agent({
+            rejectUnauthorized: false,
+          }),
+          data: data,
+        };
+        axios(config)
+          .then(function (response) {
+            sendMail("Complete", result.email, context).then((result) => {
+              callback(null, result);
             });
+          })
+          .catch(function (error) {
+            res
+              .status(500)
+              .send(
+                httpUtil.error(500, "Charging Authorization Completion error.")
+              );
           });
       },
     ],
