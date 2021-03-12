@@ -57,13 +57,17 @@ let sendMail = (type, email, context) => {
       };
     }
     let transporter = nodemailer.createTransport({
+      service: "gmail",
       host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
+      port: 465,
+      secure: true,
       requireTLS: true,
+      tls: {
+        rejectUnauthorized: false,
+      },
       auth: {
         user: "manthansetupath@gmail.com",
-        pass: "manthansetu",
+        pass: "ManthanSetuPath",
       },
     });
     transporter.use(
