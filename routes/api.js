@@ -162,10 +162,11 @@ router.post("/startSession", function (req, res, next) {
       function (callback) {
         var data = qs.stringify({
           response_url:
-            "http://ec2-13-235-241-129.ap-south-1.compute.amazonaws.com:3000/session?id=" + connectorId,
+            "http://ec2-13-235-241-129.ap-south-1.compute.amazonaws.com:3000/session?id=" +
+            connectorId,
           token: "UC1111",
           location_id: stationId,
-          evse_id: connectorId
+          evse_id: connectorId,
         });
         var config = {
           method: "POST",
@@ -173,24 +174,34 @@ router.post("/startSession", function (req, res, next) {
             "https://120.72.88.163:11443/v1/ocpi/cpo/2.2/commands/START_SESSION",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
-            Authorization: "Bearer " + accessToken
+            Authorization: "Bearer " + accessToken,
           },
           httpsAgent: new https.Agent({
             rejectUnauthorized: false,
           }),
-          data: data
+          data: data,
         };
         axios(config)
           .then(function (response) {
-            if (response.data.commandResponse.result === 'ACCEPTED') {
-              callback(null, response);
-            } else {
-              res.status(500).send(httpUtil.error(500, "Start Session Error"));
-            }
+            console.log(response);
+            // if (response.data.commandResponse.result === "ACCEPTED") {
+            //   callback(null, response);
+            // } else {
+            //   res.status(500).send(httpUtil.error(500, "Start Session Error"));
+            // }
           })
           .catch(function (error) {
             console.log(error);
-            res.status(500).send(httpUtil.error(500, error?.response?.statusText ? error?.response?.statusText : "Start Session Error"));
+            res
+              .status(500)
+              .send(
+                httpUtil.error(
+                  500,
+                  error?.response?.statusText
+                    ? error?.response?.statusText
+                    : "Start Session Error"
+                )
+              );
           });
       },
     ],
