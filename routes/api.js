@@ -190,6 +190,9 @@ router.post("/startSession", function (req, res, next) {
               console.log(resResult);
               console.log(resResult2);
               console.log(resResult3);
+              if (resResult3 == 'ACCEPTED') {
+                console.log('ACCEPTED done')
+              }
               // if (resResult?.commandResponse?.result === "ACCEPTED") {
               //   callback(null, response);
               // } else {
