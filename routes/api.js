@@ -190,7 +190,8 @@ router.post("/startSession", function (req, res, next) {
             }
           })
           .catch(function (error) {
-            res.status(500).send(httpUtil.error(500, error.response.statusText));
+            console.log(error.response);
+            res.status(500).send(httpUtil.error(500, error?.response?.statusText ? error?.response?.statusText : "Start Session Error"));
           });
       },
     ],
