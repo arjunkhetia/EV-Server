@@ -30,6 +30,31 @@ let sendMail = (type, email, context) => {
           },
         ],
       };
+    } else if (type === "Started") {
+      mailBody = {
+        from: "manthansetupath@gmail.com",
+        to: email,
+        subject: "Charging Started",
+        template: "startEmail",
+        context: context,
+        attachments: [
+          {
+            filename: "logo.png",
+            path: path.join(__dirname, "../views/logo.png"),
+            cid: "logoImage",
+          },
+          {
+            filename: "started.png",
+            path: path.join(__dirname, "../views/started.png"),
+            cid: "startedImage",
+          },
+          {
+            filename: "call.png",
+            path: path.join(__dirname, "../views/call.png"),
+            cid: "callImage",
+          },
+        ],
+      };
     } else if (type === "Complete") {
       mailBody = {
         from: "manthansetupath@gmail.com",

@@ -47,6 +47,21 @@ router.get("/client", function (req, res, next) {
     });
 });
 
+router.get("/user", function (req, res, next) {
+  const uid = req.query.uid ? ObjectId(req.query.uid) : "";
+  db.get()
+    .collection("users")
+    .find({ _id: uid })
+    .toArray(function (err, result) {
+      if (err) throw err;
+      if (result[0]) {
+        res.send(httpUtil.success(200, "", result[0]));
+      } else {
+        res.status(500).send(httpUtil.error(500, "User Data Not Found."));
+      }
+    });
+});
+
 router.post("/user", function (req, res, next) {
   const name = req.body.name ? req.body.name : "";
   const email = req.body.email ? req.body.email : "";
@@ -122,9 +137,13 @@ router.post("/user", function (req, res, next) {
             .collection("users")
             .insertOne(user, function (err, dbresult) {
               if (err) callback(err);
-              sendMail("Authorize", email, context).then((result) => {
-                res.send(httpUtil.success(200, "", dbresult));
-              });
+              sendMail("Authorize", email, context)
+                .then((result) => {
+                  res.send(httpUtil.success(200, "", dbresult));
+                })
+                .catch((error) => {
+                  res.send(httpUtil.success(200, "", dbresult));
+                });
             });
         })
         .catch(function (error) {
@@ -134,132 +153,28 @@ router.post("/user", function (req, res, next) {
 });
 
 router.post("/startSession", function (req, res, next) {
+  const uid = req.body.uid ? ObjectId(req.body.uid) : "";
   const stationId = req.body.stationId ? req.body.stationId : "";
   const connectorId = req.body.connectorId ? req.body.connectorId : "";
   const accessToken = req.body.accessToken ? req.body.accessToken : "";
-  var data = qs.stringify({
-    response_url:
-      "http://ec2-13-235-241-129.ap-south-1.compute.amazonaws.com:3000/session?id=" +
-      connectorId,
-    token: "UC1111",
-    location_id: stationId,
-    evse_id: connectorId,
-  });
-  var config = {
-    method: "POST",
-    url: "https://120.72.88.163:11443/v1/ocpi/cpo/2.2/commands/START_SESSION",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: "Bearer " + accessToken,
-    },
-    httpsAgent: new https.Agent({
-      rejectUnauthorized: false,
-    }),
-    data: data,
-  };
-  axios(config)
-    .then(function (response) {
-      res.send(httpUtil.success(200, "", response.data));
-    })
-    .catch(function (error) {
-      console.log(error);
-    });
-});
-
-router.post("/complete", function (req, res, next) {
-  const uid = req.body.uid ? ObjectId(req.body.uid) : "";
-  const time = req.body.time ? req.body.time : "";
-  const unit = req.body.unit ? req.body.unit : "";
-  const meter = req.body.meter ? req.body.meter : "";
-  const hr = parseInt(time.split(":")[0]);
-  const min = parseInt(time.split(":")[1]);
-  const sec = parseInt(time.split(":")[2]);
-  let chargedAmount;
-  let context;
   async.waterfall(
     [
       function (callback) {
-        db.get()
-          .collection("settings")
-          .find({})
-          .toArray(function (err, result) {
-            if (err) throw err;
-            const settings = result[0];
-            if (settings.price === "pricetime") {
-              const price = parseFloat(settings.min);
-              chargedAmount = (
-                hr * (60 * price) +
-                min * price +
-                sec * (price / 60)
-              ).toFixed(2);
-              callback(null, chargedAmount);
-            } else if (settings.price === "pricekwh") {
-              const price = parseFloat(settings.kwh);
-              chargedAmount = (meter * price).toFixed(2);
-              callback(null, chargedAmount);
-            }
-          });
-      },
-      function (result, callback) {
-        let data = {
-          $set: {
-            time: time,
-            unit: unit,
-            price: chargedAmount,
-            updatedAt: Date.now(),
-            status: "Complete",
-          },
-        };
-        db.get()
-          .collection("users")
-          .updateOne({ _id: uid }, data, function (err, dbresult) {
-            if (err) callback(err);
-            callback(null, dbresult);
-          });
-      },
-      function (result, callback) {
-        db.get()
-          .collection("users")
-          .find({ _id: uid })
-          .toArray(function (err, result) {
-            if (err) throw err;
-            if (result[0]) {
-              context = {
-                name: result[0].name,
-                stationId: result[0].stationId,
-                connecctorId: result[0].connecctorId,
-                time: time,
-                unit: unit,
-                price: chargedAmount,
-              };
-              callback(null, result[0]);
-            } else {
-              res
-                .status(500)
-                .send(httpUtil.error(500, "Charging Completion error."));
-            }
-          });
-      },
-      function (result, callback) {
-        var data = JSON.stringify({
-          createTransactionRequest: {
-            merchantAuthentication: {
-              name: "37Xbna3d2Fza",
-              transactionKey: "88f9A2VUrKmJ3Z5d",
-            },
-            refId: result.refId,
-            transactionRequest: {
-              transactionType: "priorAuthCaptureTransaction",
-              amount: result.price,
-              refTransId: result.transId,
-            },
-          },
+        var data = qs.stringify({
+          response_url:
+            "http://ec2-13-235-241-129.ap-south-1.compute.amazonaws.com:3000/session?id=" +
+            connectorId,
+          token: "UC1111",
+          location_id: stationId,
+          evse_id: connectorId,
         });
         var config = {
           method: "POST",
-          url: "https://apitest.authorize.net/xml/v1/request.api",
+          url:
+            "https://120.72.88.163:11443/v1/ocpi/cpo/2.2/commands/START_SESSION",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
+            Authorization: "Bearer " + accessToken,
           },
           httpsAgent: new https.Agent({
             rejectUnauthorized: false,
@@ -268,24 +183,22 @@ router.post("/complete", function (req, res, next) {
         };
         axios(config)
           .then(function (response) {
-            sendMail("Complete", result.email, context).then((result) => {
-              callback(null, result);
-            });
+            if (response.data.commandResponse.result === 'ACCEPTED') {
+              callback(null, response);
+            } else {
+              res.status(500).send(httpUtil.error(500, "Start Session Error"));
+            }
           })
           .catch(function (error) {
-            res
-              .status(500)
-              .send(
-                httpUtil.error(500, "Charging Authorization Completion error.")
-              );
+            res.status(500).send(httpUtil.error(500, error.response.statusText));
           });
       },
     ],
     function (err, result) {
       if (err) {
-        res.status(500).send(httpUtil.error(500, "Charging Completion error."));
+        res.status(500).send(httpUtil.error(500, "Start Session error."));
       } else {
-        res.send(httpUtil.success(200, "Charging Completed.", result));
+        res.send(httpUtil.success(200, "Start Session created.", result));
       }
     }
   );

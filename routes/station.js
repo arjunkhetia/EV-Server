@@ -163,37 +163,40 @@ router.put("/status", function (req, res, next) {
 router.delete("/", function (req, res, next) {
   const id = req.query.id ? ObjectId(req.query.id) : "";
   if (id) {
-    let Id = { _id: id };
     async.waterfall(
       [
         function (callback) {
           db.get()
             .collection("station")
-            .find(Id)
+            .find({ _id: id })
             .toArray(async function (err, dbresult) {
               if (err) callback(err);
-              await asyncForEach(
-                dbresult[0].connectors,
-                async (connector, index) => {
-                  db.get()
-                    .collection("connector")
-                    .deleteOne(
-                      { _id: ObjectId(connector.id) },
-                      function (err, result) {
-                        if (err) callback(err);
-                      }
-                    );
-                  if (dbresult[0].connectors.length - 1 === index) {
-                    callback(null, "Done");
+              if (dbresult[0] && dbresult[0].connectors.length) {
+                await asyncForEach(
+                  dbresult[0].connectors,
+                  async (connector, index) => {
+                    db.get()
+                      .collection("connector")
+                      .deleteOne(
+                        { _id: ObjectId(connector.id) },
+                        function (err, result) {
+                          if (err) callback(err);
+                        }
+                      );
+                    if (dbresult[0].connectors.length - 1 === index) {
+                      callback(null, "Done");
+                    }
                   }
-                }
-              );
+                );
+              } else {
+                callback(null, "Done");
+              }
             });
         },
         function (result, callback) {
           db.get()
             .collection("station")
-            .deleteOne(Id, function (err, result) {
+            .deleteOne({ _id: id }, function (err, result) {
               if (err) callback(err);
               callback(null, result);
             });
