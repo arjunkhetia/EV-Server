@@ -9,7 +9,13 @@ var https = require("https");
 var httpUtil = require("../utilities/http-messages");
 var sendMail = require("../utilities/sendMail");
 
-router.post("/", function (req, res, next) {
+async function asyncForEach(array, callback) {
+  for (let index = 0; index < array.length; index++) {
+    await callback(array[index], index, array);
+  }
+}
+
+router.post("/", async function (req, res, next) {
   const pushData = req.body ? req.body : "";
   let user;
   let chargedAmount;
@@ -99,78 +105,80 @@ router.post("/", function (req, res, next) {
       }
     );
   } else if (pushData?.transactionType === "MeterValues") {
-    async.waterfall(
-      [
-        function (callback) {
-          db.get()
-            .collection("users")
-            .find({
-              transactionId: pushData.properties[0].transactionId,
-              status: "Charging",
-            })
-            .toArray(function (err, result) {
-              if (err) throw err;
-              user = result[0];
-              callback(null, result[0]);
-            });
-        },
-        function (result, callback) {
-          let startTime = new Date(user.chargingStartAt);
-          let currentTime = pushData.properties[0].meterValue[0].timestamp
-            ? new Date(pushData.properties[0].meterValue[0].timestamp)
-            : Date.now();
-          const diff = currentTime - startTime;
-          const hours = parseInt((Math.abs(diff) / (1000 * 60 * 60)) % 24);
-          const minutes = parseInt((Math.abs(diff) / (1000 * 60)) % 60);
-          const seconds = parseInt((Math.abs(diff) / 1000) % 60);
-          let data = {
-            time:
-              hours.toLocaleString("en-US", {
-                minimumIntegerDigits: 2,
-                useGrouping: false,
-              }) +
-              ":" +
-              minutes.toLocaleString("en-US", {
-                minimumIntegerDigits: 2,
-                useGrouping: false,
-              }) +
-              ":" +
-              seconds.toLocaleString("en-US", {
-                minimumIntegerDigits: 2,
-                useGrouping: false,
-              }),
-            unit: pushData.properties[0].meterValue[0].sampledValue[0].value,
-          };
-          callback(null, data);
-        },
-        function (result, callback) {
-          let data = {
-            $set: {
-              time: result.time,
-              unit: result.unit,
-              updatedAt: Date.now(),
-            },
-          };
-          db.get()
-            .collection("users")
-            .updateOne(
-              { _id: ObjectId(user._id) },
-              data,
-              function (err, dbresult) {
-                if (err) callback(err);
-                callback(null, result);
-              }
-            );
-        },
-      ],
-      function (err, result) {
-        if (err) {
-          console.log("Error in Meter Values Process.");
-        } else {
-          console.log("Meter Values Process Completed Successfully.");
+    await asyncForEach(pushData.properties, async (properties) => {
+      async.waterfall(
+        [
+          function (callback) {
+            db.get()
+              .collection("users")
+              .find({
+                transactionId: properties.transactionId,
+                status: "Charging",
+              })
+              .toArray(function (err, result) {
+                if (err) throw err;
+                user = result[0];
+                callback(null, result[0]);
+              });
+          },
+          function (result, callback) {
+            let startTime = new Date(user.chargingStartAt);
+            let currentTime = properties.meterValue[0].timestamp
+              ? new Date(properties.meterValue[0].timestamp)
+              : Date.now();
+            const diff = currentTime - startTime;
+            const hours = parseInt((Math.abs(diff) / (1000 * 60 * 60)) % 24);
+            const minutes = parseInt((Math.abs(diff) / (1000 * 60)) % 60);
+            const seconds = parseInt((Math.abs(diff) / 1000) % 60);
+            let data = {
+              time:
+                hours.toLocaleString("en-US", {
+                  minimumIntegerDigits: 2,
+                  useGrouping: false,
+                }) +
+                ":" +
+                minutes.toLocaleString("en-US", {
+                  minimumIntegerDigits: 2,
+                  useGrouping: false,
+                }) +
+                ":" +
+                seconds.toLocaleString("en-US", {
+                  minimumIntegerDigits: 2,
+                  useGrouping: false,
+                }),
+              unit: properties.meterValue[0].sampledValue[0].value,
+            };
+            callback(null, data);
+          },
+          function (result, callback) {
+            let data = {
+              $set: {
+                time: result.time,
+                unit: result.unit,
+                updatedAt: Date.now(),
+              },
+            };
+            db.get()
+              .collection("users")
+              .updateOne(
+                { _id: ObjectId(user._id) },
+                data,
+                function (err, dbresult) {
+                  if (err) callback(err);
+                  callback(null, result);
+                }
+              );
+          },
+        ],
+        function (err, result) {
+          if (err) {
+            console.log("Error in Meter Values Process.");
+          } else {
+            console.log("Meter Values Process Completed Successfully.");
+          }
         }
-      }
-    );
+      );
+    });
   } else if (pushData?.transactionType === "StopTransaction") {
     async.waterfall(
       [
