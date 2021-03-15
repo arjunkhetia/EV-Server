@@ -184,22 +184,24 @@ router.post("/startSession", function (req, res, next) {
         axios(config)
           .then(function (response) {
             if (response) {
-              const resResult = response?.data;
-              const resResult2 = resResult?.commandResponse;
-              const resResult3 = resResult2?.result;
-              console.log(resResult);
-              console.log(resResult2);
-              console.log(resResult3);
-              if (resResult3 == 'ACCEPTED') {
-                console.log('ACCEPTED done')
-              }
-              // if (resResult?.commandResponse?.result === "ACCEPTED") {
-              //   callback(null, response);
+              // const resResult = response?.data;
+              // const resResult2 = resResult?.commandResponse;
+              // const resResult3 = resResult2?.result;
+              // console.log(resResult);
+              // console.log(resResult2);
+              // console.log(resResult3);
+              // if (resResult3 == 'ACCEPTED') {
+              //   console.log('ACCEPTED done')
               // } else {
-              //   res
-              //     .status(500)
-              //     .send(httpUtil.error(500, "Start Session Error"));
+                
               // }
+              if (response?.data?.commandResponse?.result === "ACCEPTED") {
+                callback(null, "Done");
+              } else {
+                res
+                  .status(500)
+                  .send(httpUtil.error(500, "Start Session Error"));
+              }
             } else {
               res.status(500).send(httpUtil.error(500, "Start Session Error"));
             }
