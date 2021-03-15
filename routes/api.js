@@ -185,8 +185,11 @@ router.post("/startSession", function (req, res, next) {
           .then(function (response) {
             if (response) {
               const resResult = response?.data;
+              const resResult2 = resResult?.commandResponse;
+              const resResult3 = resResult2?.result;
               console.log(resResult);
-              console.log(resResult?.commandResponse);
+              console.log(resResult2);
+              console.log(resResult3);
               // if (resResult?.commandResponse?.result === "ACCEPTED") {
               //   callback(null, response);
               // } else {
