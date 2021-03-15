@@ -176,9 +176,6 @@ router.post("/startSession", function (req, res, next) {
             "Content-Type": "application/x-www-form-urlencoded",
             Authorization: "Bearer " + accessToken,
           },
-          httpsAgent: new https.Agent({
-            rejectUnauthorized: false,
-          }),
           data: data,
         };
         axios(config)
