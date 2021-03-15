@@ -186,13 +186,14 @@ router.post("/startSession", function (req, res, next) {
             if (response) {
               const resResult = response?.data;
               console.log(resResult);
-              if (resResult?.commandResponse?.result === "ACCEPTED") {
-                callback(null, response);
-              } else {
-                res
-                  .status(500)
-                  .send(httpUtil.error(500, "Start Session Error"));
-              }
+              console.log(resResult?.commandResponse);
+              // if (resResult?.commandResponse?.result === "ACCEPTED") {
+              //   callback(null, response);
+              // } else {
+              //   res
+              //     .status(500)
+              //     .send(httpUtil.error(500, "Start Session Error"));
+              // }
             } else {
               res.status(500).send(httpUtil.error(500, "Start Session Error"));
             }
