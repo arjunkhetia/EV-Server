@@ -183,7 +183,9 @@ router.post("/startSession", function (req, res, next) {
         };
         axios(config)
           .then(function (response) {
-            console.log(response);
+            if (response) {
+              console.log(response?.data);
+            }
             // if (response.data.commandResponse.result === "ACCEPTED") {
             //   callback(null, response);
             // } else {
