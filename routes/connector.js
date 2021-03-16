@@ -22,6 +22,7 @@ router.post("/", async function (req, res, next) {
     : "";
   const connectorTitle = req.body.connectorTitle ? req.body.connectorTitle : "";
   const station = req.body.station ? req.body.station : "";
+  let duplicateConnector = false;
   if (connectorID) {
     async.waterfall(
       [
@@ -35,28 +36,52 @@ router.post("/", async function (req, res, next) {
             updatedAt: null,
             status: true,
           };
-          db.get()
-            .collection("connector")
-            .find({ connectorID: connectorID })
-            .toArray(function (err, dbresult) {
-              if (err) callback(err);
-              if (dbresult.length) {
-                res
-                  .status(500)
-                  .send(httpUtil.error(500, "Connector creation error."));
-              } else {
-                callback(null, data);
+          if (station.connectors.length) {
+            station.connectors.forEach((connector, index) => {
+              if (connector.connectorID === connectorID) {
+                duplicateConnector = true;
+              }
+              if (station.connectors.length - 1 === index) {
+                if (duplicateConnector === true) {
+                  callback(null, duplicateConnector);
+                } else {
+                  callback(null, data);
+                }
               }
             });
+          } else {
+            callback(null, data);
+          }
+        },
+        function (result, callback) {
+          if (result === true) {
+            res
+              .status(500)
+              .send(httpUtil.error(500, "Connector creation error."));
+          } else {
+            callback(null, result);
+          }
         },
         function (result, callback) {
           db.get()
             .collection("connector")
-            .insertOne({ connectorID: connectorID }, function (err, dbresult) {
-              if (err) callback(err);
-              result["id"] = dbresult.insertedId;
-              callback(null, result);
-            });
+            .insertOne(
+              {
+                stationId: station.stationId,
+                stationName: station.stationName,
+                connectorID: connectorID,
+                connectorPinNumber: connectorPinNumber,
+                connectorTitle: connectorTitle,
+                createdAt: Date.now(),
+                updatedAt: null,
+                status: true,
+              },
+              function (err, dbresult) {
+                if (err) callback(err);
+                result["id"] = dbresult.insertedId;
+                callback(null, result);
+              }
+            );
         },
         function (result, callback) {
           station.connectors.push(result);
@@ -100,28 +125,34 @@ router.put("/", function (req, res, next) {
     ? req.body.connectorPinNumber
     : "";
   const connectorTitle = req.body.connectorTitle ? req.body.connectorTitle : "";
+  let duplicateConnector = false;
+  console.log(connectorID);
   if (station_id && connector_id) {
     async.waterfall(
       [
         function (callback) {
-          db.get()
-            .collection("connector")
-            .find({ connectorID: connectorID })
-            .toArray(function (err, dbresult) {
-              if (err) callback(err);
-              if (dbresult.length) {
+          station.connectors.forEach((connector, index) => {
+            if (connector.connectorID === connectorID) {
+              duplicateConnector = true;
+            }
+            if (station.connectors.length - 1 === index) {
+              if (duplicateConnector === true) {
                 res
                   .status(500)
                   .send(httpUtil.error(500, "Connector creation error."));
               } else {
-                callback(null, dbresult);
+                callback(null, "Done");
               }
-            });
+            }
+          });
         },
         function (result, callback) {
           let connectorData = {
             $set: {
               connectorID: connectorID,
+              connectorPinNumber: connectorPinNumber,
+              connectorTitle: connectorTitle,
+              updatedAt: Date.now(),
             },
           };
           db.get()
@@ -218,6 +249,24 @@ router.put("/status", function (req, res, next) {
               callback(null, result);
             });
         },
+        function (result, callback) {
+          let connectorData = {
+            $set: {
+              status: status,
+              updatedAt: Date.now(),
+            },
+          };
+          db.get()
+            .collection("connector")
+            .updateOne(
+              { _id: connector_id },
+              connectorData,
+              function (err, result) {
+                if (err) callback(err);
+                callback(null, result);
+              }
+            );
+        },
       ],
       function (err, result) {
         if (err) {
@@ -248,25 +297,21 @@ router.delete("/", function (req, res, next) {
       [
         function (callback) {
           db.get()
-            .collection("connector")
-            .deleteOne(cId, function (err, result) {
-              if (err) callback(err);
-              callback(null, result);
-            });
-        },
-        function (result, callback) {
-          db.get()
             .collection("station")
             .find(sId)
             .toArray(function (err, result) {
               if (err) callback(err);
               let connectors = result[0].connectors;
-              console.log(connectorId);
-              for (let index = 0; index < connectors.length; index++) {
-                if (connectors[index].id === req.query.connectorId) {
-                  connectors.splice(index, 1);
-                  callback(null, connectors);
-                  break;
+              if (result[0].connectors.length === 1) {
+                connectors = [];
+                callback(null, connectors);
+              } else {
+                for (let index = 0; index < connectors.length; index++) {
+                  if (connectors[index].id === req.query.connectorId) {
+                    connectors.splice(index, 1);
+                    callback(null, connectors);
+                    break;
+                  }
                 }
               }
             });
@@ -280,6 +325,14 @@ router.delete("/", function (req, res, next) {
           db.get()
             .collection("station")
             .updateOne(sId, data, function (err, result) {
+              if (err) callback(err);
+              callback(null, result);
+            });
+        },
+        function (result, callback) {
+          db.get()
+            .collection("connector")
+            .deleteOne(cId, function (err, result) {
               if (err) callback(err);
               callback(null, result);
             });

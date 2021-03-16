@@ -160,6 +160,24 @@ router.post("/startSession", function (req, res, next) {
   async.waterfall(
     [
       function (callback) {
+        let data = {
+          $set: {
+            status: "Requested",
+            updatedAt: Date.now(),
+          },
+        };
+        db.get()
+          .collection("users")
+          .updateOne(
+            { _id: uid },
+            data,
+            function (err, dbresult) {
+              if (err) callback(err);
+              callback(null, dbresult);
+            }
+          );
+      },
+      function (result, callback) {
         var data = qs.stringify({
           response_url:
             "http://ec2-13-235-241-129.ap-south-1.compute.amazonaws.com:3000/session?id=" +

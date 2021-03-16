@@ -43,7 +43,7 @@ router.post("/", async function (req, res, next) {
             .find({
               stationId: pushData.properties[0].chargePointIdentifier.toString(),
               connecctorId: pushData.properties[0].connectorId.toString(),
-              status: "Authorize",
+              status: "Requested",
             })
             .toArray(function (err, result) {
               if (err) throw err;
